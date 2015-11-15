@@ -15,29 +15,26 @@ const (
 	thresh = 0.75
 )
 
-func countBlackPixels(im image.Image) int {
+func blackPixelPercent(im image.Image) float64 {
 	bounds := im.Bounds()
 
-	// Calculate a 16-bin histogram for m's red, green, blue and alpha components.
-	//
 	// An image's bounds do not necessarily start at (0, 0), so the two loops start
 	// at bounds.Min.Y and bounds.Min.X. Looping over Y first and X second is more
 	// likely to result in better memory access patterns than X first and Y second.
+	pixelCount := (bounds.Max.Y - bounds.Min.Y) * (bounds.Max.X - bounds.Min.X)
 
 	blackPixels := 0
 
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r, g, b, _ := im.At(x, y).RGBA()
-			// A color's RGBA method returns values in the range [0, 65535].
-			// Shifting by 12 reduces this to the range [0, 15].
 
 			if r == 0 && g == 0 && b == 0 {
 				blackPixels++
 			}
 		}
 	}
-	return blackPixels
+	return float64(blackPixels) / float64(pixelCount)
 }
 
 func loadImage(s string) (image.Image, error) {
@@ -53,22 +50,32 @@ func loadImage(s string) (image.Image, error) {
 
 func main() {
 	// Decode the JPEG data. If reading from file, create a reader with
-	//
 
-	redball, _ := ioutil.ReadDir("data/redball")
-	for i := range redball {
-		m, err := loadImage("data/redball/" + redball[i].Name())
-		if err != nil {
-			log.Fatal("Error loading image.")
-		}
-		bounds := m.Bounds()
-		pixelCount := (bounds.Max.Y - bounds.Min.Y) * (bounds.Max.X - bounds.Min.X)
-		blackPixels := countBlackPixels(m)
-		if float64(blackPixels)/float64(pixelCount) > thresh {
-			fmt.Println("candidate frame", redball[i].Name())
-			out := gosseract.Must(gosseract.Params{Src: "data/redball/" + redball[i].Name(), Languages: "eng"})
-			fmt.Println(out)
+	season := "data/frames/16/"
+	// names of folders of episodes
+	episodeDirs, _ := ioutil.ReadDir(season)
+	for e := range episodeDirs {
+		if episodeDirs[e].IsDir() {
+			// names of files
+			episodeName := episodeDirs[e].Name()
+			episode, _ := ioutil.ReadDir(season + episodeName)
+
+			for i := range episode {
+				m, err := loadImage(season + episodeName + "/" + episode[i].Name())
+				if err != nil {
+					log.Fatal("Error loading image.")
+				}
+
+				blackPixels := blackPixelPercent(m)
+				if blackPixels > thresh {
+					out := gosseract.Must(gosseract.Params{Src: season + episodeName + "/" + episode[i].Name(), Languages: "eng"})
+
+					if out != "" {
+						fmt.Println("candidate frame", episode[i].Name())
+						fmt.Println(out)
+					}
+				}
+			}
 		}
 	}
-
 }
