@@ -1,0 +1,4 @@
+#!/bin/bash
+set -e
+eval $(docker-machine env default)
+docker run -v $(pwd):/go/src/github.com/sklise/lawandorder -it sklise/lawandorder
