@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"image"
 	_ "image/png"
@@ -48,34 +49,50 @@ func loadImage(s string) (image.Image, error) {
 	return m, err
 }
 
+type episode struct {
+	cards []string
+	title string
+}
+
 func main() {
 	// Decode the JPEG data. If reading from file, create a reader with
+
+	episodesData := []episode{}
 
 	season := "data/frames/16/"
 	// names of folders of episodes
 	episodeDirs, _ := ioutil.ReadDir(season)
+
+	// each episode
 	for e := range episodeDirs {
 		if episodeDirs[e].IsDir() {
 			// names of files
 			episodeName := episodeDirs[e].Name()
-			episode, _ := ioutil.ReadDir(season + episodeName)
+			episodeDir, _ := ioutil.ReadDir(season + episodeName)
 
-			for i := range episode {
-				m, err := loadImage(season + episodeName + "/" + episode[i].Name())
+			ed := episode{
+				title: episodeName,
+			}
+			for i := range episodeDir {
+				m, err := loadImage(season + episodeName + "/" + episodeDir[i].Name())
 				if err != nil {
 					log.Fatal("Error loading image.")
 				}
 
 				blackPixels := blackPixelPercent(m)
 				if blackPixels > thresh {
-					out := gosseract.Must(gosseract.Params{Src: season + episodeName + "/" + episode[i].Name(), Languages: "eng"})
+					out := gosseract.Must(gosseract.Params{Src: season + episodeName + "/" + episodeDir[i].Name(), Languages: "eng"})
 
 					if out != "" {
-						fmt.Println("candidate frame", episode[i].Name())
-						fmt.Println(out)
+						// fmt.Println("candidate frame", episodeDir[i].Name())
+						ed.cards = append(ed.cards, out)
+						// fmt.Println(out)
 					}
 				}
 			}
+			episodesData = append(episodesData, ed)
 		}
 	}
+	s, _ := json.Marshal(map[string][]episode{"episodes": episodesData})
+	fmt.Println(string(s))
 }
