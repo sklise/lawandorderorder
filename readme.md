@@ -1,13 +1,18 @@
 # Law And Order Order
 
+## Dev
+
+You need a folder `data/videos/` with video files sorted into season sub directories to run.
+
+```
+docker pull sklise/lawandorder
+script/dev
+```
+
 ## TODO
 
-- ffmpeg in docker
 - fine tune threshold
-- check text out for "english"
+- check ocr result for the desired place cards
 - determine if the cards have a predictable format.
 - remove end credits :(
-
-```
-ffmpeg -i data/videos/16/01\ Red\ Ball.mp4 -vf fps=1 data/frames/16/01\ Red\ Ball/out%04d.png
-```
+- save synopsis etc into json?
